@@ -1,0 +1,87 @@
+# game.py
+
+from collections import deque
+from player import HumanPlayer, AIPlayer
+from utils import log_move
+from file_manager import FileManager
+import math
+
+
+class Game:
+    def __init__(self):
+        # plansza gry (lista)
+        self._board = [" "] * 9
+
+        # kolejka graczy (collections.deque)
+        self._players = deque([
+            HumanPlayer("X"),
+            AIPlayer("O")
+        ])
+
+        self._game_over = False
+        self._move_count = 0
+
+        # statystyki + plik
+        self._file_manager = FileManager()
+        self._stats = self._file_manager.load_stats()
+
+    def display_board(self):
+        print()
+        for i in range(0, 9, 3):
+            print(f" {self._board[i]} | {self._board[i + 1]} | {self._board[i + 2]} ")
+            if i < 6:
+                print("---+---+---")
+        print()
+
+    @log_move
+    def make_move(self):
+        player = self._players[0]
+        move = player.make_move(self._board)
+
+        # walidacja ruchu
+        if not str(move).isdigit() or move < 0 or move > 8:
+            print("Niepoprawny ruch!")
+            return False
+
+        if self._board[move] != " ":
+            print("Pole zajęte!")
+            return False
+
+        # wykonanie ruchu
+        self._board[move] = player.get_symbol()
+        self._players.rotate(-1)
+        self._move_count += 1
+
+        return True
+
+    def check_game_over(self):
+        winner = self._check_winner()
+
+        if winner:
+            print(f"🎉 Gracz {winner} wygrywa!")
+            self._stats[winner] += 1
+            self._file_manager.save_stats(self._stats)
+            print(f"Statystyki: {self._stats}")
+            self._game_over = True
+            return True
+
+        # math – maksymalna liczba ruchów
+        if self._move_count >= math.ceil(9):
+            print("🤝 Remis!")
+            self._game_over = True
+            return True
+
+        return False
+
+    def _check_winner(self):
+        winning_combinations = [
+            (0, 1, 2), (3, 4, 5), (6, 7, 8),
+            (0, 3, 6), (1, 4, 7), (2, 5, 8),
+            (0, 4, 8), (2, 4, 6)
+        ]
+
+        for a, b, c in winning_combinations:
+            if self._board[a] == self._board[b] == self._board[c] != " ":
+                return self._board[a]
+
+        return None
