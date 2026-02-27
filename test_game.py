@@ -1,5 +1,3 @@
-# test_game.py
-
 from game import Game
 
 
